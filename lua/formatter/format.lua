@@ -180,6 +180,11 @@ function M.startTask(configs, startLine, endLine, format_then_write)
       end
     else
       util.print(string.format("No change necessary with %s", name))
+      if format_then_write and bufnr == api.nvim_get_current_buf() then
+        M.saving = true
+        vim.api.nvim_command("update")
+        M.saving = false
+      end
     end
 
     util.fireEvent("FormatterPost")
