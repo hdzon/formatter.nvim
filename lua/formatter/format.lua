@@ -23,6 +23,11 @@ function M.format(args, mods, startLine, endLine, write)
   -- No formatters defined for the given file type
   if util.isEmpty(formatters) then
     util.err(string.format("No formatter defined for %s files", filetype))
+    if write then
+      M.saving = true
+      vim.api.nvim_command("update")
+      M.saving = false
+    end
     return
   end
   local configsToRun = {}
