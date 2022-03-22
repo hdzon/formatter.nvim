@@ -4,7 +4,7 @@ local util = require "formatter.util"
 
 local M = {}
 
-function M.format(args, mods, startLine, endLine, write)
+function M.format(args, mods, startLine, endLine, opts)
   if M.saving then
     return
   end
@@ -15,11 +15,13 @@ function M.format(args, mods, startLine, endLine, write)
   local filetype = vim.bo.filetype
   local formatters = config.values.filetype[filetype]
 
+
   if not modifiable then
-    util.print("Buffer is not modifiable")
+    util.info("Buffer is not modifiable")
     return
   end
 
+  local configsToRun = {}
   -- No formatters defined for the given file type
   if util.isEmpty(formatters) then
     util.err(string.format("No formatter defined for %s files", filetype))
@@ -30,17 +32,22 @@ function M.format(args, mods, startLine, endLine, write)
     end
     return
   end
-  local configsToRun = {}
   for _, val in ipairs(formatters) do
     local tmp = val()
     if userPassedFmt == nil or userPassedFmt[tmp.exe] then
       table.insert(configsToRun, {config = tmp, name = tmp.exe})
     end
   end
-  M.startTask(configsToRun, startLine, endLine, write)
+
+  M.startTask(configsToRun, startLine, endLine, opts)
 end
 
-function M.startTask(configs, startLine, endLine, format_then_write)
+function M.startTask(configs, startLine, endLine, opts)
+  opts = vim.tbl_deep_extend("keep", opts or {}, {
+    write = false,
+  })
+
+
   local F = {}
   local bufnr = api.nvim_get_current_buf()
   local bufname = api.nvim_buf_get_name(bufnr)
@@ -54,7 +61,7 @@ function M.startTask(configs, startLine, endLine, format_then_write)
   local buf_skip_format = util.getBufVar(bufnr, "formatter_skip_buf") or false
   local tempfiles = {}
   if buf_skip_format then
-    util.print("Formatting turn off for buffer")
+    util.info("Formatting turn off for buffer")
     return
   end
   function F.on_event(job_id, data, event)
@@ -87,13 +94,13 @@ function M.startTask(configs, startLine, endLine, format_then_write)
       -- Failed to run, stop the loop
       if not ignore_exitcode and data > 0 then
         if errOutput then
-          util.err(string.format("failed to run formatter %s", name .. ". " .. table.concat(errOutput)))
+          util.error(string.format("failed to run formatter %s", name .. ". " .. table.concat(errOutput)))
         end
       end
 
       -- Success
       if ignore_exitcode or data == 0 then
-        util.log(string.format("Finished running %s", name))
+        util.info(string.format("Finished running %s", name))
         output = currentOutput
       end
       F.step()
@@ -102,7 +109,7 @@ function M.startTask(configs, startLine, endLine, format_then_write)
 
   function F.run(current)
     if inital_changedtick ~= vim.api.nvim_buf_get_changedtick(bufnr) then
-      util.print("Buffer changed while formatting, skipping")
+      util.debug("Buffer changed while formatting, skipping")
       return
     end
 
@@ -169,7 +176,7 @@ function M.startTask(configs, startLine, endLine, format_then_write)
     if not util.isSame(input, output) then
       local view = vim.fn.winsaveview()
       if not output then
-        util.err(
+        util.error(
           string.format("Formatter: Formatted code not found. You may need to change the stdin setting of %s.", name)
         )
         return
@@ -177,7 +184,7 @@ function M.startTask(configs, startLine, endLine, format_then_write)
       util.setLines(bufnr, startLine, endLine, output)
       vim.fn.winrestview(view)
 
-      if format_then_write and bufnr == api.nvim_get_current_buf() then
+      if opts.write and bufnr == api.nvim_get_current_buf() then
         M.saving = true
         vim.api.nvim_command("update")
         M.saving = false

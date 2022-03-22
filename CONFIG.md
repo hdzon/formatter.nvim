@@ -33,7 +33,25 @@ require('formatter').setup({
       function()
         return {
           exe = "rustfmt",
-          args = {"--emit=stdout"},
+          args = {"--emit=stdout", "--edition=2021"},
+          stdin = true
+        }
+      end
+    },
+  }
+})
+```
+
+## JSON
+
+```lua
+require("formatter").setup({
+  filetype = {
+    json = {
+      function()
+        return {
+          exe = "prettier",
+          args = {"--stdin-filepath", vim.fn.fnameescape(vim.api.nvim_buf_get_name(0)), "--double-quote"},
           stdin = true
         }
       end
@@ -160,6 +178,39 @@ require('formatter').setup({
 })
 ```
 
+## HCL (Hashicop Configuration Language)
+
+Reference: https://terragrunt.gruntwork.io/docs/getting-started/configuration/#formatting-hcl-files
+
+```lua
+-- plugin-config
+require('formatter').setup({
+  filetype = {
+    hcl = {
+      function()
+        return {
+          exec = "terragrunt",
+          args = {"hclfmt"},
+          stdin = false
+        }
+      end
+    },
+  }
+})
+
+-- autocmd-config
+vim.api.nvim_exec(
+  [[
+    augroup FormatAutogroup
+      autocmd!
+      autocmd BufWritePost *.hcl,*.tf FormatWrite
+      autocmd BufNewFile,BufRead *.hcl set filetype=terraform syntax=terraform
+    augroup END
+  ]],
+  true
+)
+```
+
 ## Black
 
 ```lua
@@ -175,6 +226,59 @@ require('formatter').setup({
         }
       end
     }
+  }
+})
+```
+
+## bibclean
+
+```lua
+require('formatter').setup({
+  filetype = {
+    bib = {
+      function()
+        return {
+          exe = "bibclean", -- this should be available on your $PATH
+          args = {"-align-equals"},
+          stdin = true
+        }
+      end
+    }
+  }
+})
+```
+
+## Golang
+
+```lua
+require('formatter').setup({
+  filetype = {
+    -- Configuration for gofmt
+    go = {
+      function()
+        return {
+          exe = "gofmt",
+          stdin = true
+        }
+      end
+    },
+  }
+})
+```
+
+```lua
+require('formatter').setup({
+  filetype = {
+    -- Configuration for goimports
+    go = {
+      function()
+        return {
+          exe = "goimports",
+          args = {"-w", vim.fn.fnameescape(vim.api.nvim_buf_get_name(0))},
+          stdin = false
+        }
+      end
+    },
   }
 })
 ```
@@ -199,3 +303,40 @@ require("formatter").setup({
   }
 })
 ```
+
+## dart
+
+````lua
+require("formatter").setup({
+  filetype = {
+    dart = {
+      function()
+        return {
+          exe = "dart",
+          args = {
+            "format"
+          },
+          stdin = true
+        }
+      end
+    }
+  }
+```
+
+## latexindent
+
+```lua
+require("formatter").setup({
+	filetype = {
+		tex = {
+			function()
+				return {
+					exe = "latexindent",
+					args = { "-" },
+					stdin = true,
+				}
+			end,
+		},
+	},
+})
+````
