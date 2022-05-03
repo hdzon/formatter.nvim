@@ -21,9 +21,7 @@ function M.format(args, mods, startLine, endLine, opts)
   local configsToRun = {}
   -- No formatters defined for the given file type
   if util.isEmpty(formatters) then
-    if not util.isEmpty(filetype) then
-      util.err(string.format('No formatter defined for %s files', filetype))
-    end
+    util.err(string.format('No formatter defined for %s files', filetype))
     if write then
       M.saving = true
       vim.api.nvim_command('update')
