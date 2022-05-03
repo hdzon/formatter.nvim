@@ -58,9 +58,11 @@ function M.startTask(configs, startLine, endLine, opts)
     util.info('Formatting turn off for buffer')
     return
   end
-  function F.on_event(job_id, data, event)
-    if event == 'stdout' then
-      if data[#data] == '' then data[#data] = nil end
+  function F.on_event(transform, job_id, data, event)
+    if event == "stdout" then
+      if data[#data] == "" then
+        data[#data] = nil
+      end
       if tempfiles[job_id] ~= nil then
         data = util.read_temp_file(tempfiles[job_id])
       end
@@ -85,8 +87,8 @@ function M.startTask(configs, startLine, endLine, opts)
 
       -- Success
       if ignore_exitcode or data == 0 then
-        util.info(string.format('Finished running %s', name))
-        output = currentOutput
+        util.info(string.format("Finished running %s", name))
+        output = transform and transform(currentOutput) or currentOutput
       end
       F.step()
     end
@@ -112,13 +114,16 @@ function M.startTask(configs, startLine, endLine, opts)
       return
     end
 
+    local on_event = function(...)
+      F.on_event(current.config.transform, ...)
+    end
     local job_options = {
-      on_stderr = F.on_event,
-      on_stdout = F.on_event,
-      on_exit = F.on_event,
-      stdout_buffered = true,
-      stderr_buffered = true,
-      cwd = current.config.cwd or vim.fn.getcwd()
+        on_stderr = on_event,
+        on_stdout = on_event,
+        on_exit = on_event,
+        stdout_buffered = true,
+        stderr_buffered = true,
+        cwd = current.config.cwd or vim.fn.getcwd(),
     }
 
     if current.config.stdin then
@@ -126,10 +131,15 @@ function M.startTask(configs, startLine, endLine, opts)
       vim.fn.chansend(job_id, output)
       vim.fn.chanclose(job_id, 'stdin')
     else
-      local tempfile_name = util.create_temp_file(bufname, output,
-                                                  current.config)
-      table.insert(cmd, tempfile_name)
-      local job_id = vim.fn.jobstart(table.concat(cmd, ' '), job_options)
+      local tempfile_name = util.create_temp_file(bufname, output, current.config)
+      if not current.config.no_append then
+        table.insert(cmd, tempfile_name)
+      end
+      local job_id =
+        vim.fn.jobstart(
+        table.concat(cmd, " "),
+        job_options
+      )
       tempfiles[job_id] = tempfile_name
     end
   end
