@@ -26,6 +26,11 @@ function M.format(args, mods, start_line, end_line, opts)
   -- No formatters defined for the given file type
   if util.is_empty(formatters) then
     log.info(string.format("No formatter defined for %s files", filetype))
+    if opts.write then
+      M.saving = true
+      vim.api.nvim_command('update')
+      M.saving = false
+    end
     return
   end
   for _, formatter_config in ipairs(formatters) do
@@ -216,6 +221,11 @@ function M.start_task(configs, start_line, end_line, opts)
       end
     else
       log.info(string.format("No change necessary with %s", name))
+      if opts.write then
+        M.saving = true
+        vim.api.nvim_command('update')
+        M.saving = false
+      end
     end
 
     local silent = config.values.log_level > vim.log.levels.DEBUG
